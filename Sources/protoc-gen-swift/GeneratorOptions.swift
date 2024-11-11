@@ -68,8 +68,8 @@ class GeneratorOptions {
         case standard
         case lite
 
-        init(mode: String) {
-            switch mode.lowercased() {
+        init(flag: String) {
+            switch flag.lowercased() {
             case "lite":
                 self = .lite
             default:
@@ -85,16 +85,34 @@ class GeneratorOptions {
         }
     }
 
+    enum Indentation {
+        case long
+        case short
+
+        init(flag: String) {
+            switch flag.lowercased() {
+            case "long":
+                self = .long
+            default:
+                self = .short
+            }
+        }
+    }
+
     let outputNaming: OutputNaming
     let protoToModuleMappings: ProtoFileToModuleMappings
     let visibility: Visibility
     let importDirective: ImportDirective
     let experimentalStripNonfunctionalCodegen: Bool
     let generationMode: GenerationMode
+    let indentation: Indentation
 
     /// Indicates whether the current generation mode is set to "lite,"
     /// meaning only basic structs are generated without additional dependencies.
     var isLiteMode: Bool { generationMode == .lite }
+
+    /// Indicates whether the current indentation mode is set to "lite,"
+    var isLongIndentation: Bool { indentation == .long }
 
     /// A string snippet to insert for the visibility
     let visibilitySourceSnippet: String
@@ -108,6 +126,7 @@ class GeneratorOptions {
         var useAccessLevelOnImports = false
         var experimentalStripNonfunctionalCodegen: Bool = false
         var generationMode: GenerationMode = .standard
+        var indentation: Indentation = .short
 
         for pair in parameter.parsedPairs {
             switch pair.key {
@@ -174,7 +193,9 @@ class GeneratorOptions {
                     )
                 }
             case "GenerationMode":
-                generationMode = GenerationMode(mode: pair.value)
+                generationMode = GenerationMode(flag: pair.value)
+            case "Indentation":
+                indentation = Indentation(flag: pair.value)
             default:
                 throw GenerationError.unknownParameter(name: pair.key)
             }
@@ -199,6 +220,7 @@ class GeneratorOptions {
         self.outputNaming = outputNaming
         self.visibility = visibility
         self.generationMode = generationMode
+        self.indentation = indentation
 
         switch visibility {
         case .internal:

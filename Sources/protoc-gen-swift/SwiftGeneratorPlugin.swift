@@ -35,7 +35,9 @@ struct SwiftGeneratorPlugin: CodeGenerator {
         var errorString: String? = nil
         for fileDescriptor in files {
             let fileGenerator = FileGenerator(fileDescriptor: fileDescriptor, generatorOptions: options)
-            var printer = CodePrinter(addNewlines: true)
+            var printer = options.isLongIndentation ? 
+                CodePrinter(indent: "    ".unicodeScalars, addNewlines: true) :
+                CodePrinter(addNewlines: true)
             fileGenerator.generateOutputFile(printer: &printer, errorString: &errorString)
             if let errorString = errorString {
                 // If generating multiple files, scope the message with the file that triggered it.
