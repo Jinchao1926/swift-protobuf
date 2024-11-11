@@ -64,11 +64,37 @@ class GeneratorOptions {
         }
     }
 
+    enum GenerationMode: CustomStringConvertible {
+        case standard
+        case lite
+
+        init(mode: String) {
+            switch mode.lowercased() {
+            case "lite":
+                self = .lite
+            default:
+                self = .standard
+            }
+        }
+
+        var description: String {
+            switch self {
+            case .standard: "Standard"
+            case .lite: "Lite"
+            }
+        }
+    }
+
     let outputNaming: OutputNaming
     let protoToModuleMappings: ProtoFileToModuleMappings
     let visibility: Visibility
     let importDirective: ImportDirective
     let experimentalStripNonfunctionalCodegen: Bool
+    let generationMode: GenerationMode
+
+    /// Indicates whether the current generation mode is set to "lite,"
+    /// meaning only basic structs are generated without additional dependencies.
+    var isLiteMode: Bool { generationMode == .lite }
 
     /// A string snippet to insert for the visibility
     let visibilitySourceSnippet: String
@@ -81,6 +107,7 @@ class GeneratorOptions {
         var implementationOnlyImports: Bool = false
         var useAccessLevelOnImports = false
         var experimentalStripNonfunctionalCodegen: Bool = false
+        var generationMode: GenerationMode = .standard
 
         for pair in parameter.parsedPairs {
             switch pair.key {
@@ -146,6 +173,8 @@ class GeneratorOptions {
                         value: pair.value
                     )
                 }
+            case "GenerationMode":
+                generationMode = GenerationMode(mode: pair.value)
             default:
                 throw GenerationError.unknownParameter(name: pair.key)
             }
@@ -169,6 +198,7 @@ class GeneratorOptions {
 
         self.outputNaming = outputNaming
         self.visibility = visibility
+        self.generationMode = generationMode
 
         switch visibility {
         case .internal:

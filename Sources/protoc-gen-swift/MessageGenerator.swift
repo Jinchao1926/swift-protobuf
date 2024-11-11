@@ -101,6 +101,11 @@ class MessageGenerator {
         parent: MessageGenerator?,
         errorString: inout String?
     ) {
+        guard !generatorOptions.isLiteMode else {
+            generateMainStructLite(printer: &p, parent: parent, errorString: &errorString)
+            return
+        }
+
         // protoc does this validation; this is just here as a safety net because what is
         // generated and how the runtime works assumes this.
         if descriptor.useMessageSetWireFormat {
@@ -558,6 +563,63 @@ class MessageGenerator {
     }
 }
 
+private extension MessageGenerator {
+    func generateMainStructLite(
+        printer p: inout CodePrinter,
+        parent: MessageGenerator?,
+        errorString: inout String?
+    ) {
+        // protoc does this validation; this is just here as a safety net because what is
+        // generated and how the runtime works assumes this.
+        if descriptor.useMessageSetWireFormat {
+            guard fields.isEmpty else {
+                errorString = "\(descriptor.fullName) has the option message_set_wire_format but it also has fields."
+                return
+            }
+        }
+        for e in descriptor.extensions {
+            guard e.containingType.useMessageSetWireFormat else { continue }
+
+            guard e.type == .message else {
+                errorString =
+                    "\(e.containingType.fullName) has the option message_set_wire_format but \(e.fullName) is a non message extension field."
+                return
+            }
+            guard e.isOptional else {
+                errorString =
+                    "\(e.containingType.fullName) has the option message_set_wire_format but \(e.fullName) is not a \"optional\" extension field."
+                return
+            }
+        }
+
+        p.print(
+            "",
+            "\(descriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions))\(visibility)struct \(swiftRelativeName): Codable {"
+        )
+        p.withIndentation { p in
+            for f in fields {
+                f.generateInterface(printer: &p)
+            }
+
+            for o in oneofs {
+                o.generateMainEnum(printer: &p)
+            }
+
+            // Nested enums
+            for e in enums {
+                e.generateMainEnum(printer: &p)
+            }
+
+            // Nested messages
+            for m in messages {
+                m.generateMainStruct(printer: &p, parent: self, errorString: &errorString)
+            }
+        }
+        p.print("}")
+    }
+}
+
+// MARK: - Lite
 private struct MessageFieldFactory {
     private let generatorOptions: GeneratorOptions
     private let namer: SwiftProtobufNamer

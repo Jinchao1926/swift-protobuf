@@ -97,6 +97,11 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
     }
 
     func generateInterface(printer p: inout CodePrinter) {
+        guard !generatorOptions.isLiteMode else {
+            generateInterfaceLite(printer: &p)
+            return
+        }
+
         let visibility = generatorOptions.visibilitySourceSnippet
 
         p.print()
@@ -237,5 +242,19 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
         p.print("\(prefix)if \(conditional) {")
         p.printIndented("try visitor.\(visitMethod)(\(traitsArg)value: \(varName), fieldNumber: \(number))")
         p.print("}\(suffix)")
+    }
+}
+
+// MARK: - Lite
+private extension MessageFieldGenerator {
+    func generateInterfaceLite(printer p: inout CodePrinter) {
+        let visibility = generatorOptions.visibilitySourceSnippet
+
+        p.print()
+        if hasFieldPresence {
+            p.print("\(comments)\(visibility)var \(swiftName): \(swiftStorageType)")
+        } else {
+            p.print("\(comments)\(visibility)var \(swiftName): \(swiftStorageType) = \(swiftDefaultValue)")
+        }
     }
 }

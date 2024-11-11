@@ -56,6 +56,11 @@ class EnumGenerator {
     }
 
     func generateMainEnum(printer p: inout CodePrinter) {
+        guard !generatorOptions.isLiteMode else {
+            generateMainEnumLite(printer: &p)
+            return
+        }
+
         let visibility = generatorOptions.visibilitySourceSnippet
 
         p.print(
@@ -248,5 +253,44 @@ class EnumGenerator {
 
         }
         p.print("}")
+    }
+}
+
+// MARK: - Lite
+private extension EnumGenerator {
+    /// `GenerationMode: lite`
+    func generateMainEnumLite(printer p: inout CodePrinter) {
+        let visibility = generatorOptions.visibilitySourceSnippet
+
+        p.print(
+          "",
+          "\(enumDescriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions))\(visibility)enum \(swiftRelativeName): String, Codable {"
+        )
+        p.withIndentation { p in
+            // Cases/aliases
+            generateCasesOrAliasesLite(printer: &p)
+        }
+        p.print("}")
+    }
+
+    /// `GenerationMode: lite`
+    /// Generates the cases or statics (for alias) for the values.
+    ///
+    /// - Parameter p: The code printer.
+    private func generateCasesOrAliasesLite(printer p: inout CodePrinter) {
+        let visibility = generatorOptions.visibilitySourceSnippet
+        for enumValueDescriptor in namer.uniquelyNamedValues(valueAliasInfo: aliasInfo) {
+            let comments = enumValueDescriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions)
+            if !comments.isEmpty {
+                p.print()
+            }
+            let relativeName = namer.relativeName(enumValue: enumValueDescriptor)
+            if let aliasOf = aliasInfo.original(of: enumValueDescriptor) {
+                let aliasOfName = namer.relativeName(enumValue: aliasOf)
+                p.print("\(comments)\(visibility)static let \(relativeName) = \(aliasOfName)")
+            } else {
+                p.print("\(comments)case \(relativeName) = \"\(enumValueDescriptor.name)\"")
+            }
+        }
     }
 }
