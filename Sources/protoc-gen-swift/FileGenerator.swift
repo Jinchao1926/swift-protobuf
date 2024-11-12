@@ -22,6 +22,7 @@ class FileGenerator {
     private let fileDescriptor: FileDescriptor
     private let generatorOptions: GeneratorOptions
     private let namer: SwiftProtobufNamer
+    private let shortenTypeNaming: Bool
 
     var outputFilename: String {
         let ext = ".pb.swift"
@@ -48,6 +49,8 @@ class FileGenerator {
             currentFile: fileDescriptor,
             protoFileToModuleMappings: generatorOptions.protoToModuleMappings
         )
+
+        self.shortenTypeNaming = generatorOptions.shortenTypeNamingFiles.contains { fileDescriptor.name.contains($0) }
     }
 
     /// Generate, if `errorString` gets filled in, then report error instead of using
@@ -282,7 +285,7 @@ private extension FileGenerator {
         extensionSet.add(extensionFields: fileDescriptor.extensions)
 
         let enums = fileDescriptor.enums.map {
-            EnumGenerator(descriptor: $0, generatorOptions: generatorOptions, namer: namer)
+            EnumGenerator(descriptor: $0, generatorOptions: generatorOptions, namer: namer, shortenNaming: shortenTypeNaming)
         }
 
         let messages = fileDescriptor.messages.map {
@@ -290,7 +293,8 @@ private extension FileGenerator {
                 descriptor: $0,
                 generatorOptions: generatorOptions,
                 namer: namer,
-                extensionSet: extensionSet
+                extensionSet: extensionSet,
+                shortenNaming: shortenTypeNaming
             )
         }
 

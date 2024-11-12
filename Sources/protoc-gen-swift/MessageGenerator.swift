@@ -32,16 +32,19 @@ class MessageGenerator {
     private let enums: [EnumGenerator]
     private let messages: [MessageGenerator]
     private let isExtensible: Bool
+    private let shortenNaming: Bool
 
     init(
         descriptor: Descriptor,
         generatorOptions: GeneratorOptions,
         namer: SwiftProtobufNamer,
-        extensionSet: ExtensionSetGenerator
+        extensionSet: ExtensionSetGenerator,
+        shortenNaming: Bool = false
     ) {
         self.descriptor = descriptor
         self.generatorOptions = generatorOptions
         self.namer = namer
+        self.shortenNaming = shortenNaming
 
         visibility = generatorOptions.visibilitySourceSnippet
         isExtensible = !descriptor.messageExtensionRanges.isEmpty
@@ -563,6 +566,7 @@ class MessageGenerator {
     }
 }
 
+// MARK: - Lite
 private extension MessageGenerator {
     func generateMainStructLite(
         printer p: inout CodePrinter,
@@ -592,10 +596,18 @@ private extension MessageGenerator {
             }
         }
 
-        p.print(
-            "",
-            "\(descriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions))\(visibility)struct \(swiftRelativeName): Codable {"
-        )
+        if shortenNaming && swiftRelativeName != descriptor.name {
+            p.print(
+                "",
+                "\(descriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions))\(visibility)typealias \(descriptor.name) = \(swiftRelativeName)",
+                "\(visibility)struct \(swiftRelativeName): Codable {"
+            )
+        } else {
+            p.print(
+                "",
+                "\(descriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions))\(visibility)struct \(swiftRelativeName): Codable {"
+            )
+        }
         p.withIndentation { p in
             for f in fields {
                 f.generateInterface(printer: &p)

@@ -36,15 +36,18 @@ class EnumGenerator {
 
     private let swiftRelativeName: String
     private let swiftFullName: String
+    private let shortenNaming: Bool
 
     init(
         descriptor: EnumDescriptor,
         generatorOptions: GeneratorOptions,
-        namer: SwiftProtobufNamer
+        namer: SwiftProtobufNamer,
+        shortenNaming: Bool = false
     ) {
         self.enumDescriptor = descriptor
         self.generatorOptions = generatorOptions
         self.namer = namer
+        self.shortenNaming = shortenNaming
         aliasInfo = EnumDescriptor.ValueAliasInfo(enumDescriptor: descriptor)
 
         mainEnumValueDescriptorsSorted = aliasInfo.mainValues.sorted(by: {
@@ -262,10 +265,18 @@ private extension EnumGenerator {
     func generateMainEnumLite(printer p: inout CodePrinter) {
         let visibility = generatorOptions.visibilitySourceSnippet
 
-        p.print(
-          "",
-          "\(enumDescriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions))\(visibility)enum \(swiftRelativeName): String, Codable {"
-        )
+        if shortenNaming && swiftRelativeName != enumDescriptor.name {
+            p.print(
+              "",
+              "\(enumDescriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions))\(visibility)typealias \(enumDescriptor.name) = \(swiftRelativeName)",
+              "\(visibility)enum \(swiftRelativeName): String, Codable {"
+            )
+        } else {
+            p.print(
+              "",
+              "\(enumDescriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions))\(visibility)enum \(swiftRelativeName): String, Codable {"
+            )
+        }
         p.withIndentation { p in
             // Cases/aliases
             generateCasesOrAliasesLite(printer: &p)

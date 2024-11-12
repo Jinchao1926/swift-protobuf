@@ -210,10 +210,7 @@ class OneofGenerator {
     }
 
     func generateMainEnum(printer p: inout CodePrinter) {
-        guard !generatorOptions.isLiteMode else {
-            generateMainEnumLite(printer: &p)
-            return
-        }
+        guard !generatorOptions.isLiteMode else { return }
 
         let visibility = generatorOptions.visibilitySourceSnippet
 
@@ -304,6 +301,11 @@ class OneofGenerator {
     // MARK: Things brindged from MemberFieldGenerator
 
     func generateInterface(printer p: inout CodePrinter, field: MemberFieldGenerator) {
+        guard !generatorOptions.isLiteMode else {
+            generateInterfaceLite(printer: &p, field: field)
+            return
+        }
+
         // First field causes the oneof enum to get generated.
         if field === fields.first {
             gerenateOneofEnumProperty(printer: &p)
@@ -459,65 +461,12 @@ class OneofGenerator {
 }
 
 private extension OneofGenerator {
-    func generateMainEnumLite(printer p: inout CodePrinter) {
+    func generateInterfaceLite(printer p: inout CodePrinter, field: MemberFieldGenerator) {
         let visibility = generatorOptions.visibilitySourceSnippet
 
-        // Repeat the comment from the oneof to provide some context
-        // to this enum we generated.
         p.print(
             "",
-            "\(comments)\(visibility)enum \(swiftRelativeName): Equatable, Codable {"
+            "\(field.comments)\(visibility)let \(field.swiftName): \(field.swiftType)?"
         )
-        p.withIndentation { p in
-            // Oneof case for each ivar
-            for f in fields {
-                p.print("\(f.comments)case \(f.swiftName)(\(f.swiftType))")
-            }
-
-            // A helper for isInitialized
-            let fieldsToCheck = fields.filter {
-                $0.isGroupOrMessage && $0.messageType!.containsRequiredFields()
-            }
-            if !fieldsToCheck.isEmpty {
-                p.print(
-                    "",
-                    "fileprivate var isInitialized: Bool {"
-                )
-                p.withIndentation { p in
-                    if fieldsToCheck.count == 1 {
-                        let f = fieldsToCheck.first!
-                        p.print(
-                            "guard case \(f.dottedSwiftName)(let v) = self else {return true}",
-                            "return v.isInitialized"
-                        )
-                    } else if fieldsToCheck.count > 1 {
-                        p.print(
-                            """
-                            // The use of inline closures is to circumvent an issue where the compiler
-                            // allocates stack space for every case branch when no optimizations are
-                            // enabled. https://github.com/apple/swift-protobuf/issues/1034
-                            switch self {
-                            """
-                        )
-                        for f in fieldsToCheck {
-                            p.print("case \(f.dottedSwiftName): return {")
-                            p.printIndented(
-                                "guard case \(f.dottedSwiftName)(let v) = self else { preconditionFailure() }",
-                                "return v.isInitialized"
-                            )
-                            p.print("}()")
-                        }
-                        // If there were other cases, add a default.
-                        if fieldsToCheck.count != fields.count {
-                            p.print("default: return true")
-                        }
-                        p.print("}")
-                    }
-                }
-                p.print("}")
-                p.print()
-            }
-        }
-        p.print("}")
     }
 }

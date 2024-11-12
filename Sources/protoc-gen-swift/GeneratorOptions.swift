@@ -106,6 +106,7 @@ class GeneratorOptions {
     let experimentalStripNonfunctionalCodegen: Bool
     let generationMode: GenerationMode
     let indentation: Indentation
+    let shortenTypeNamingFiles: [String]
 
     /// Indicates whether the current generation mode is set to "lite,"
     /// meaning only basic structs are generated without additional dependencies.
@@ -127,6 +128,7 @@ class GeneratorOptions {
         var experimentalStripNonfunctionalCodegen: Bool = false
         var generationMode: GenerationMode = .standard
         var indentation: Indentation = .short
+        var shortenTypeNamingFiles: [String] = []
 
         for pair in parameter.parsedPairs {
             switch pair.key {
@@ -196,6 +198,8 @@ class GeneratorOptions {
                 generationMode = GenerationMode(flag: pair.value)
             case "Indentation":
                 indentation = Indentation(flag: pair.value)
+            case "ShortenTypeNamingFiles":
+                shortenTypeNamingFiles = pair.value.split(separator: "_").map { String($0) }
             default:
                 throw GenerationError.unknownParameter(name: pair.key)
             }
@@ -221,6 +225,7 @@ class GeneratorOptions {
         self.visibility = visibility
         self.generationMode = generationMode
         self.indentation = indentation
+        self.shortenTypeNamingFiles = shortenTypeNamingFiles
 
         switch visibility {
         case .internal:

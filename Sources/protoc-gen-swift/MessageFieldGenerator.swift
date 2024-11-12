@@ -251,10 +251,16 @@ private extension MessageFieldGenerator {
         let visibility = generatorOptions.visibilitySourceSnippet
 
         p.print()
+
+        let optionalStorageType = swiftStorageType.contains("?") ? swiftStorageType : "\(swiftStorageType)?"
+        p.print("\(comments)\(visibility)let \(swiftName): \(optionalStorageType)")
+
+        /*
         if hasFieldPresence {
             p.print("\(comments)\(visibility)var \(swiftName): \(swiftStorageType)")
         } else {
             p.print("\(comments)\(visibility)var \(swiftName): \(swiftStorageType) = \(swiftDefaultValue)")
         }
+         */
     }
 }
